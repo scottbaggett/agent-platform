@@ -13,3 +13,6 @@ count.txt
 todos.json
 .dex
 .aid
+
+# Generated API types
+src/lib/types/api.generated.ts

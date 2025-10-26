@@ -1,10 +1,11 @@
 /**
  * ProtoWorkflowToolbar - Top toolbar with workflow controls
- * Save, load, new workflow, etc.
+ * Now uses backend API instead of localStorage
  */
 
 import { Save, FolderOpen, Plus, Trash2 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -15,56 +16,90 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useProtoWorkflowStore } from "@/lib/stores/useProtoWorkflowStore";
+import {
+  useWorkflows,
+  useWorkflow,
+  useCreateWorkflow,
+  useUpdateWorkflow,
+  useDeleteWorkflow,
+} from "@/hooks/use-workflows";
 
-type ProtoWorkflowToolbarProps = {
-  onSave: () => void;
-  onLoad: (workflowId: string) => void;
-  onNew: (name: string) => void;
-};
-
-export const ProtoWorkflowToolbar = ({
-  onSave,
-  onLoad,
-  onNew,
-}: ProtoWorkflowToolbarProps) => {
+export const ProtoWorkflowToolbar = () => {
+  const navigate = useNavigate();
   const [isLoadDialogOpen, setIsLoadDialogOpen] = useState(false);
   const [newWorkflowName, setNewWorkflowName] = useState("");
   const [isNewDialogOpen, setIsNewDialogOpen] = useState(false);
   const [editingName, setEditingName] = useState("");
 
-  const {
-    workflows,
-    currentWorkflowId,
-    getCurrentWorkflow,
-    deleteWorkflow,
-    renameWorkflow,
-  } = useProtoWorkflowStore();
-
-  const currentWorkflow = getCurrentWorkflow();
+  const { currentWorkflowId, setCurrentWorkflow } = useProtoWorkflowStore();
+  const { data: workflowsList } = useWorkflows();
+  const { data: currentWorkflow } = useWorkflow(currentWorkflowId || "");
+  const createWorkflow = useCreateWorkflow();
+  const updateWorkflow = useUpdateWorkflow();
+  const deleteWorkflow = useDeleteWorkflow();
 
   // Sync editing name with current workflow
-  useEffect(() => {
+  useState(() => {
     if (currentWorkflow) {
       setEditingName(currentWorkflow.name);
     }
-  }, [currentWorkflow?.id]);
+  });
 
   const handleNew = () => {
     if (!newWorkflowName.trim()) return;
-    onNew(newWorkflowName.trim());
-    setNewWorkflowName("");
-    setIsNewDialogOpen(false);
+
+    createWorkflow.mutate(
+      {
+        name: newWorkflowName.trim(),
+        definition: { nodes: [], edges: [] },
+      },
+      {
+        onSuccess: (newWorkflow) => {
+          setCurrentWorkflow(newWorkflow.id);
+          setNewWorkflowName("");
+          setIsNewDialogOpen(false);
+          console.log("✅ Created new workflow:", newWorkflow.name);
+        },
+      },
+    );
   };
 
   const handleLoad = (workflowId: string) => {
-    onLoad(workflowId);
+    setCurrentWorkflow(workflowId);
     setIsLoadDialogOpen(false);
+    console.log("✅ Loading workflow:", workflowId);
   };
 
   const handleDelete = (workflowId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (confirm("Are you sure you want to delete this workflow?")) {
-      deleteWorkflow(workflowId);
+      deleteWorkflow.mutate(workflowId, {
+        onSuccess: () => {
+          console.log("✅ Deleted workflow:", workflowId);
+          // If we deleted the current workflow, clear it
+          if (workflowId === currentWorkflowId) {
+            setCurrentWorkflow(null);
+          }
+        },
+      });
+    }
+  };
+
+  const handleRename = (newName: string) => {
+    if (!currentWorkflowId || !newName.trim()) return;
+
+    setEditingName(newName);
+
+    // Debounced update
+    updateWorkflow.mutate({
+      workflowId: currentWorkflowId,
+      update: { name: newName.trim() },
+    });
+  };
+
+  const handleSave = () => {
+    if (currentWorkflowId) {
+      console.log("💾 Manual save triggered (auto-save is active)");
     }
   };
 
@@ -74,12 +109,8 @@ export const ProtoWorkflowToolbar = ({
       <div className="flex items-center gap-2">
         {currentWorkflow ? (
           <Input
-            value={editingName}
-            onChange={(e) => {
-              setEditingName(e.target.value);
-              // Auto-save name change with debounce
-              renameWorkflow(currentWorkflow.id, e.target.value);
-            }}
+            value={editingName || currentWorkflow.name}
+            onChange={(e) => handleRename(e.target.value)}
             className="h-7 w-48 text-sm"
             placeholder="Workflow name..."
           />
@@ -117,21 +148,25 @@ export const ProtoWorkflowToolbar = ({
               >
                 Cancel
               </Button>
-              <Button onClick={handleNew} disabled={!newWorkflowName.trim()}>
-                Create
+              <Button
+                onClick={handleNew}
+                disabled={!newWorkflowName.trim() || createWorkflow.isPending}
+              >
+                {createWorkflow.isPending ? "Creating..." : "Create"}
               </Button>
             </div>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Save */}
+      {/* Save (shown but auto-save is active) */}
       <Button
         variant="ghost"
         size="sm"
         className="gap-2"
-        onClick={onSave}
+        onClick={handleSave}
         disabled={!currentWorkflowId}
+        title="Auto-save is active"
       >
         <Save className="h-4 w-4" />
         Save
@@ -150,18 +185,18 @@ export const ProtoWorkflowToolbar = ({
             <DialogTitle>Load Workflow</DialogTitle>
           </DialogHeader>
           <div className="max-h-96 space-y-2 overflow-y-auto pt-4">
-            {workflows.length === 0 ? (
+            {!workflowsList || workflowsList.workflows.length === 0 ? (
               <div className="text-muted-foreground py-8 text-center text-sm">
                 No saved workflows yet
               </div>
             ) : (
-              workflows.map((workflow) => (
+              workflowsList.workflows.map((workflow) => (
                 <div
                   key={workflow.id}
                   className={`hover:bg-surface-3 flex cursor-pointer items-center justify-between rounded-lg border p-3 shadow-sm transition-colors ${
                     workflow.id === currentWorkflowId
-                      ? "bg-card border"
-                      : "border-blue-500"
+                      ? "bg-card border-blue-500"
+                      : "border-gray-700"
                   }`}
                   onClick={() => handleLoad(workflow.id)}
                 >
@@ -169,12 +204,20 @@ export const ProtoWorkflowToolbar = ({
                     <div className="text-foreground font-medium">
                       {workflow.name}
                     </div>
-                    <div className="mt-1 text-xs">
-                      {workflow.nodes.length} nodes, {workflow.edges.length}{" "}
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      {
+                        ((workflow.definition as { nodes?: unknown[] })?.nodes || [])
+                          .length
+                      }{" "}
+                      nodes,{" "}
+                      {
+                        ((workflow.definition as { edges?: unknown[] })?.edges || [])
+                          .length
+                      }{" "}
                       connections
                     </div>
                     <div className="text-muted-foreground mt-1 text-xs">
-                      Updated {new Date(workflow.updatedAt).toLocaleString()}
+                      Updated {new Date(workflow.updated_at).toLocaleString()}
                     </div>
                   </div>
                   <Button
@@ -182,6 +225,7 @@ export const ProtoWorkflowToolbar = ({
                     size="icon"
                     className="h-8 w-8 hover:text-red-400"
                     onClick={(e) => handleDelete(workflow.id, e)}
+                    disabled={deleteWorkflow.isPending}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -191,6 +235,15 @@ export const ProtoWorkflowToolbar = ({
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* View All Workflows Link */}
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => navigate({ to: "/workflows" })}
+      >
+        View All
+      </Button>
     </div>
   );
 };

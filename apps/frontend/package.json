@@ -11,7 +11,8 @@
     "format": "prettier --write .",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist .output .nitro .tanstack node_modules",
-    "prepare": "husky"
+    "prepare": "husky",
+    "generate-types": "./scripts/generate-api-types.sh"
   },
   "lint-staged": {
     "**/*": "prettier --write --ignore-unknown"
@@ -104,6 +105,7 @@
     "husky": "^9.1.7",
     "jsdom": "^27.0.0",
     "lint-staged": "^16.2.6",
+    "openapi-typescript": "^7.10.1",
     "poline": "^0.11.0",
     "prettier": "3.6.2",
     "react-markdown": "^10.1.0",

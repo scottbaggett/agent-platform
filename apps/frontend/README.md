@@ -205,6 +205,145 @@ export default App;
 
 You can find out everything you need to know on how to use React-Query in the [React-Query documentation](https://tanstack.com/query/latest/docs/framework/react/overview).
 
+## API Type Generation
+
+This project uses **automatic type generation** from the FastAPI backend's OpenAPI schema. This ensures type safety and eliminates manual type maintenance.
+
+### How It Works
+
+1. **FastAPI** automatically generates an OpenAPI schema at `/openapi.json`
+2. **openapi-typescript** converts that schema into TypeScript types
+3. The generated types are used throughout the frontend for **full type safety**
+
+### Generate Types
+
+Whenever the backend API changes, regenerate types:
+
+```bash
+# From the frontend directory
+pnpm generate-types
+
+# Or from the monorepo root
+pnpm --filter @agent-platform/frontend generate-types
+```
+
+**Requirements:**
+- Backend must be running at `http://localhost:8001` (or `$VITE_API_URL`)
+- Run `cd apps/backend && python main.py` if needed
+
+### Generated Files
+
+- **Input:** `http://localhost:8001/openapi.json` (FastAPI OpenAPI schema)
+- **Output:** `src/lib/types/api.generated.ts` (TypeScript types)
+
+This file is **gitignored** and should be regenerated as needed.
+
+### Type Usage
+
+#### Import Generated Types
+
+```typescript
+import type { components } from "@/lib/types/api.generated";
+
+// Use schema types
+type Workflow = components["schemas"]["WorkflowResponse"];
+type WorkflowList = components["schemas"]["WorkflowListResponse"];
+```
+
+#### API Client Example
+
+```typescript
+// apps/frontend/src/lib/api/workflows.ts
+import type { components } from "../types/api.generated";
+
+type WorkflowResponse = components["schemas"]["WorkflowResponse"];
+
+export async function fetchWorkflow(id: string): Promise<WorkflowResponse> {
+  const response = await fetch(`${API_URL}/workflows/${id}`);
+  return response.json();
+}
+```
+
+#### React Query Hooks
+
+```typescript
+// apps/frontend/src/hooks/use-workflows.ts
+import { useQuery } from "@tanstack/react-query";
+import { fetchWorkflows } from "@/lib/api/workflows";
+
+export function useWorkflows() {
+  return useQuery({
+    queryKey: ["workflows"],
+    queryFn: fetchWorkflows,
+  });
+}
+```
+
+### When to Regenerate
+
+Regenerate types whenever you:
+- Add/modify Pydantic models in the backend
+- Change API endpoints or request/response schemas
+- Add new fields to existing models
+- Update enum values
+
+### Development Workflow
+
+1. **Make backend changes** (e.g., add fields to `Workflow` model)
+2. **Start the backend** (`cd apps/backend && python main.py`)
+3. **Generate types** (`pnpm generate-types` from frontend dir)
+4. **TypeScript will catch** any breaking changes immediately
+5. **Update frontend code** to match new types
+
+### Benefits
+
+- **Type Safety:** Compile-time errors for API mismatches
+- **Auto-completion:** Full IntelliSense for API types
+- **No Manual Sync:** Types always match backend reality
+- **Refactoring:** Rename fields safely across frontend/backend
+- **Documentation:** Types serve as API documentation
+
+### Troubleshooting
+
+#### Backend Not Running
+
+```
+❌ Error: Backend is not running at http://localhost:8001
+   Please start the backend server first
+```
+
+**Solution:** Start the backend:
+```bash
+cd apps/backend
+python main.py
+```
+
+#### Type Generation Fails
+
+**Check:**
+1. Backend is accessible at configured URL
+2. `/openapi.json` endpoint returns valid JSON
+3. `openapi-typescript` is installed (`pnpm install`)
+
+#### Types Out of Sync
+
+If types don't match the backend:
+```bash
+# Regenerate types
+pnpm generate-types
+
+# Check for TypeScript errors
+pnpm typecheck
+```
+
+### Related Files
+
+- **Script:** `scripts/generate-api-types.sh`
+- **Config:** `package.json` (`generate-types` script)
+- **Gitignore:** `.gitignore` (excludes `api.generated.ts`)
+- **API Client:** `src/lib/api/workflows.ts`
+- **Hooks:** `src/hooks/use-workflows.ts`
+
 ## State Management
 
 Another common requirement for React applications is state management. There are many options for state management in React. TanStack Store provides a great starting point for your project.

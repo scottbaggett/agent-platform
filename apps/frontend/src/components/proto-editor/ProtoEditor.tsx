@@ -1,6 +1,7 @@
 /**
  * ProtoEditor - Main editor component
  * Simple React Flow canvas with node browser and execution controls
+ * Now uses backend API for workflow persistence instead of localStorage
  */
 
 import {
@@ -15,6 +16,7 @@ import {
   type Node,
 } from "@xyflow/react";
 import { useCallback, useState, useEffect, useRef } from "react";
+import { useSearch } from "@tanstack/react-router";
 import { ProtoExecutionBar } from "./ProtoExecutionBar";
 import { ProtoNode } from "./ProtoNode";
 import { ProtoNodeBrowser } from "./ProtoNodeBrowser";
@@ -28,6 +30,13 @@ import { useReactFlow } from "@xyflow/react";
 import { ProtoDynamicTextNode } from "./ProtoDynamicTextNode";
 import { useNodeDefinitions } from "@/hooks/use-node-definitions";
 import { refreshNodeDefinitions } from "@/lib/utils/refreshNodeDefinitions";
+import {
+  useWorkflows,
+  useWorkflow,
+  useCreateWorkflow,
+  useUpdateWorkflow,
+} from "@/hooks/use-workflows";
+import { protoEngineConfig } from "@/lib/config/protoEngine";
 
 const nodeTypes = {
   protoNode: ProtoNode,
@@ -43,7 +52,7 @@ export const ProtoEditor = () => {
   const [executingNodeId, setExecutingNodeId] = useState<string | null>(null);
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
   const [initialized, setInitialized] = useState(false);
-  const [viewportChanged, setViewportChanged] = useState(0); // Counter to trigger saves
+  const [viewportChanged, setViewportChanged] = useState(0);
   const [contextMenu, setContextMenu] = useState<{
     x: number;
     y: number;
@@ -52,90 +61,81 @@ export const ProtoEditor = () => {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const { screenToFlowPosition, setViewport, getViewport } = useReactFlow();
 
-  const store = useProtoWorkflowStore();
-  const {
-    createWorkflow,
-    saveWorkflow,
-    loadWorkflow,
-    currentWorkflowId,
-    setCurrentWorkflow,
-    workflows,
-  } = store;
+  // Get URL params
+  const search = useSearch({ from: "/proto-editor/" });
+  const urlWorkflowId = (search as { workflowId?: string }).workflowId;
+
+  // Store and API hooks
+  const { currentWorkflowId, setCurrentWorkflow } = useProtoWorkflowStore();
+  const { data: workflowsList } = useWorkflows();
+  const { data: currentWorkflowData } = useWorkflow(currentWorkflowId || "");
+  const createWorkflow = useCreateWorkflow();
+  const updateWorkflow = useUpdateWorkflow();
 
   // Fetch latest node definitions
   const { data: nodeDefinitions } = useNodeDefinitions();
 
-  // Initialize workflow on mount - wait for Zustand hydration
+  // Initialize workflow on mount
   useEffect(() => {
-    if (initialized) return;
+    if (initialized || !workflowsList) return;
 
-    // Small delay to ensure Zustand persist has hydrated
-    const timer = setTimeout(() => {
-      console.log("Initializing workflow system:", {
-        currentWorkflowId,
-        workflowCount: workflows.length,
-        workflows: workflows.map((w) => ({
-          id: w.id,
-          name: w.name,
-          nodeCount: w.nodes?.length || 0,
-        })),
-      });
+    console.log("Initializing workflow system:", {
+      currentWorkflowId,
+      urlWorkflowId,
+      workflowCount: workflowsList.total,
+    });
 
-      if (!currentWorkflowId) {
-        if (workflows.length === 0) {
-          // No workflows exist, create initial one
-          const id = createWorkflow("Untitled Workflow");
-          console.log("✅ Created initial workflow:", id);
-        } else {
-          // Load the most recent workflow
-          const mostRecent = [...workflows].sort(
-            (a, b) => b.updatedAt - a.updatedAt,
-          )[0];
-          console.log(
-            "✅ Loading most recent workflow:",
-            mostRecent.name,
-            "with",
-            mostRecent.nodes?.length || 0,
-            "nodes",
-          );
-          setCurrentWorkflow(mostRecent.id);
-          setNodes(mostRecent.nodes || []);
-          setEdges(mostRecent.edges || []);
-          if (mostRecent.viewport) {
-            setViewport(mostRecent.viewport, { duration: 0 });
-            console.log("📷 Restored viewport:", mostRecent.viewport);
-          }
-        }
-      } else {
-        // Load current workflow data
-        const current = workflows.find((w) => w.id === currentWorkflowId);
-        if (current) {
-          console.log(
-            "✅ Loading current workflow:",
-            current.name,
-            "with",
-            current.nodes?.length || 0,
-            "nodes",
-          );
-          setNodes(current.nodes || []);
-          setEdges(current.edges || []);
-          if (current.viewport) {
-            setViewport(current.viewport, { duration: 0 });
-            console.log("📷 Restored viewport:", current.viewport);
-          }
-        } else {
-          console.warn(
-            "⚠️ Current workflow ID set but workflow not found:",
-            currentWorkflowId,
-          );
-        }
-      }
+    // Priority: URL param > current ID > most recent > create new
+    if (urlWorkflowId) {
+      console.log("✅ Loading workflow from URL:", urlWorkflowId);
+      setCurrentWorkflow(urlWorkflowId);
+    } else if (currentWorkflowId) {
+      console.log("✅ Using current workflow ID:", currentWorkflowId);
+      // Keep current workflow
+    } else if (workflowsList.total > 0) {
+      // Load most recent
+      const mostRecent = workflowsList.workflows[0];
+      console.log("✅ Loading most recent workflow:", mostRecent.name);
+      setCurrentWorkflow(mostRecent.id);
+    } else {
+      // Create initial workflow
+      console.log("✅ Creating initial workflow");
+      createWorkflow.mutate(
+        {
+          name: "Untitled Workflow",
+          definition: { nodes: [], edges: [] },
+        },
+        {
+          onSuccess: (newWorkflow) => {
+            setCurrentWorkflow(newWorkflow.id);
+          },
+        },
+      );
+    }
 
-      setInitialized(true);
-    }, 50); // Wait 50ms for hydration
+    setInitialized(true);
+  }, [workflowsList, initialized]);
 
-    return () => clearTimeout(timer);
-  }, []);
+  // Load workflow data when current workflow changes
+  useEffect(() => {
+    if (!currentWorkflowData || !initialized) return;
+
+    console.log("✅ Loading workflow data:", currentWorkflowData.name);
+
+    const definition = currentWorkflowData.definition as {
+      nodes?: Node[];
+      edges?: any[];
+      viewport?: { x: number; y: number; zoom: number };
+    };
+
+    setNodes(definition?.nodes || []);
+    setEdges(definition?.edges || []);
+
+    if (definition?.viewport) {
+      setViewport(definition.viewport, { duration: 0 });
+      console.log("📷 Restored viewport:", definition.viewport);
+    }
+  }, [currentWorkflowData?.id, initialized]);
 
   // Refresh node definitions when they're loaded
   useEffect(() => {
@@ -144,7 +144,6 @@ export const ProtoEditor = () => {
     console.log("🔄 Refreshing node definitions for", nodes.length, "nodes");
     const refreshedNodes = refreshNodeDefinitions(nodes, nodeDefinitions);
 
-    // Check if any nodes were actually updated
     const hasChanges = refreshedNodes.some((node, idx) => {
       const oldNode = nodes[idx];
       return (
@@ -161,31 +160,47 @@ export const ProtoEditor = () => {
 
   // Auto-save workflow when nodes/edges/viewport change
   useEffect(() => {
-    if (currentWorkflowId && initialized) {
-      const timeout = setTimeout(() => {
-        const viewport = getViewport();
-        saveWorkflow(currentWorkflowId, nodes, edges, viewport);
-        console.log(
-          "💾 Auto-saved workflow:",
-          currentWorkflowId,
-          "|",
-          nodes.length,
-          "nodes",
-          "|",
-          edges.length,
-          "edges",
-          "| zoom:",
-          viewport.zoom.toFixed(2),
-        );
-      }, 500); // Debounce 500ms
-      return () => clearTimeout(timeout);
-    }
+    if (!currentWorkflowId || !initialized || updateWorkflow.isPending) return;
+
+    const timeout = setTimeout(() => {
+      const viewport = getViewport();
+      const definition = {
+        nodes,
+        edges,
+        viewport,
+      };
+
+      updateWorkflow.mutate(
+        {
+          workflowId: currentWorkflowId,
+          update: { definition },
+        },
+        {
+          onSuccess: () => {
+            console.log(
+              "💾 Auto-saved workflow:",
+              currentWorkflowId.slice(0, 8),
+              "|",
+              nodes.length,
+              "nodes",
+              "|",
+              edges.length,
+              "edges",
+              "| zoom:",
+              viewport.zoom.toFixed(2),
+            );
+          },
+        },
+      );
+    }, 1000); // Debounce 1s
+
+    return () => clearTimeout(timeout);
   }, [nodes, edges, viewportChanged, currentWorkflowId, initialized]);
 
   // Handle viewport changes (pan/zoom)
   const onMoveEnd = useCallback(() => {
     if (initialized) {
-      setViewportChanged((prev) => prev + 1); // Trigger auto-save
+      setViewportChanged((prev) => prev + 1);
     }
   }, [initialized]);
 
@@ -202,7 +217,7 @@ export const ProtoEditor = () => {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isExecuting]); // Re-attach when isExecuting changes
+  }, [isExecuting]);
 
   const onConnect = useCallback(
     (connection: Connection) => {
@@ -211,7 +226,6 @@ export const ProtoEditor = () => {
     [setEdges],
   );
 
-  // Allow all connections (no type validation)
   const isValidConnection = useCallback(() => {
     return true;
   }, []);
@@ -224,7 +238,6 @@ export const ProtoEditor = () => {
       const isSchemaNode = nodeType === "ProtoSchemaNode";
       const isDynamicTextNode = nodeType === "ProtoDynamicTextNode";
 
-      // Determine node type
       let reactFlowType = "protoNode";
       if (isOutputNode) reactFlowType = "protoOutputNode";
       if (isSchemaNode) reactFlowType = "protoSchemaNode";
@@ -240,7 +253,6 @@ export const ProtoEditor = () => {
           label: nodeDef.display_name || nodeType,
           streamingContent: "",
           isStreaming: false,
-          // Expose context and json_schema inputs by default for agent nodes
           exposedInputs: [],
         },
       };
@@ -253,15 +265,13 @@ export const ProtoEditor = () => {
   const handleExecute = useCallback(
     async (startNodeId?: string) => {
       setIsExecuting(true);
-      setContextMenu(null); // Close context menu
+      setContextMenu(null);
 
       try {
-        // If starting from a specific node, filter to only include that node and downstream nodes
         let nodesToExecute = nodes;
         let edgesToUse = edges;
 
         if (startNodeId) {
-          // Find all nodes downstream from the start node (BFS)
           const downstreamNodeIds = new Set<string>([startNodeId]);
           const queue = [startNodeId];
 
@@ -277,7 +287,6 @@ export const ProtoEditor = () => {
             });
           }
 
-          // Filter nodes and edges
           nodesToExecute = nodes.filter((n) => downstreamNodeIds.has(n.id));
           edgesToUse = edges.filter(
             (e) =>
@@ -292,7 +301,6 @@ export const ProtoEditor = () => {
           });
         }
 
-        // Prepare workflow data for backend
         const workflowData = {
           nodes: nodesToExecute.reduce(
             (acc, node) => {
@@ -314,20 +322,34 @@ export const ProtoEditor = () => {
 
         console.log("Sending workflow to backend:", workflowData);
 
-        // Call backend execution endpoint with streaming
-        const response = await fetch("http://localhost:8001/execute", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(workflowData),
-        });
+        const executeUrl = `${protoEngineConfig.url}/execute`;
+        console.log("Execute URL:", executeUrl);
+        console.log("API Config:", protoEngineConfig);
 
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+        let response;
+        try {
+          response = await fetch(executeUrl, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(workflowData),
+          });
+        } catch (fetchError) {
+          console.error("Fetch failed:", fetchError);
+          console.error("Execute URL was:", executeUrl);
+          console.error("VITE_API_URL env:", import.meta.env.VITE_API_URL);
+          throw new Error(
+            `Failed to connect to backend at ${executeUrl}. Is the backend running? Error: ${fetchError instanceof Error ? fetchError.message : String(fetchError)}`
+          );
         }
 
-        // Read SSE stream
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("Response not OK:", response.status, errorText);
+          throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
+        }
+
         const reader = response.body?.getReader();
         const decoder = new TextDecoder();
 
@@ -345,17 +367,13 @@ export const ProtoEditor = () => {
             break;
           }
 
-          // Decode chunk and add to buffer
           buffer += decoder.decode(value, { stream: true });
-
-          // Process complete SSE messages (separated by \n\n)
           const messages = buffer.split("\n\n");
-          buffer = messages.pop() || ""; // Keep incomplete message in buffer
+          buffer = messages.pop() || "";
 
           for (const message of messages) {
             if (!message.trim()) continue;
 
-            // Parse SSE format: "data: {...}"
             const dataMatch = message.match(/^data: (.+)$/m);
             if (!dataMatch) continue;
 
@@ -363,7 +381,6 @@ export const ProtoEditor = () => {
               const eventData = JSON.parse(dataMatch[1]);
               console.log("Received event:", eventData);
 
-              // Handle different event types
               switch (eventData.event) {
                 case "workflow_start":
                   console.log("Workflow execution started");
@@ -375,7 +392,6 @@ export const ProtoEditor = () => {
                   break;
 
                 case "node_stream":
-                  // Update connected output nodes with streaming content
                   setNodes((nds) =>
                     nds.map((n) =>
                       n.id === eventData.node_id
@@ -394,13 +410,11 @@ export const ProtoEditor = () => {
 
                 case "node_complete":
                   setExecutingNodeId(null);
-                  // Stop streaming indicator and store final output
                   setNodes((nds) =>
                     nds.map((n) => {
                       if (n.id === eventData.node_id) {
                         const output = eventData.output || {};
 
-                        // For output nodes, store the content in streamingContent
                         if (
                           n.data.nodeType === "ProtoOutputNode" &&
                           output.content !== undefined
@@ -415,7 +429,6 @@ export const ProtoEditor = () => {
                           };
                         }
 
-                        // For other nodes, just stop streaming
                         return {
                           ...n,
                           data: { ...n.data, isStreaming: false },
@@ -457,7 +470,6 @@ export const ProtoEditor = () => {
     [nodes, edges, setNodes],
   );
 
-  // Handle node selection
   const handleNodeClick = useCallback(
     (_event: React.MouseEvent, node: Node) => {
       setSelectedNode(node);
@@ -465,7 +477,6 @@ export const ProtoEditor = () => {
     [],
   );
 
-  // Handle node context menu (right-click)
   const handleNodeContextMenu = useCallback(
     (event: React.MouseEvent, node: Node) => {
       event.preventDefault();
@@ -478,7 +489,6 @@ export const ProtoEditor = () => {
     [],
   );
 
-  // Close context menu when clicking elsewhere
   useEffect(() => {
     const handleClick = () => setContextMenu(null);
     if (contextMenu) {
@@ -487,11 +497,9 @@ export const ProtoEditor = () => {
     }
   }, [contextMenu]);
 
-  // Update node data from properties panel
   const handleUpdateNode = useCallback(
     (nodeId: string, data: any) => {
       setNodes((nds) => nds.map((n) => (n.id === nodeId ? { ...n, data } : n)));
-      // Update selected node to reflect changes
       setSelectedNode((prev) =>
         prev?.id === nodeId ? { ...prev, data } : prev,
       );
@@ -499,44 +507,6 @@ export const ProtoEditor = () => {
     [setNodes],
   );
 
-  // Workflow actions
-  const handleSave = useCallback(() => {
-    if (currentWorkflowId) {
-      const viewport = getViewport();
-      saveWorkflow(currentWorkflowId, nodes, edges, viewport);
-      console.log("💾 Workflow manually saved");
-    }
-  }, [currentWorkflowId, nodes, edges, getViewport, saveWorkflow]);
-
-  const handleLoad = useCallback(
-    (workflowId: string) => {
-      const workflow = loadWorkflow(workflowId);
-      if (workflow) {
-        setNodes(workflow.nodes);
-        setEdges(workflow.edges);
-        setCurrentWorkflow(workflowId);
-        if (workflow.viewport) {
-          setViewport(workflow.viewport, { duration: 300 });
-          console.log("📷 Restored viewport:", workflow.viewport);
-        }
-        console.log("✅ Workflow loaded:", workflow.name);
-      }
-    },
-    [loadWorkflow, setNodes, setEdges, setCurrentWorkflow, setViewport],
-  );
-
-  const handleNew = useCallback(
-    (name: string) => {
-      const newId = createWorkflow(name);
-      setNodes([]);
-      setEdges([]);
-      setCurrentWorkflow(newId);
-      console.log("New workflow created:", name);
-    },
-    [createWorkflow, setNodes, setEdges, setCurrentWorkflow],
-  );
-
-  // Handle drag and drop
   const onDragOver = useCallback((event: React.DragEvent) => {
     event.preventDefault();
     event.dataTransfer.dropEffect = "move";
@@ -560,7 +530,6 @@ export const ProtoEditor = () => {
         const isAgentNode = nodeDef.name === "ProtoAgentNode";
         const isSchemaNode = nodeDef.name === "ProtoSchemaNode";
 
-        // Determine node type
         let reactFlowType = "protoNode";
         if (isOutputNode) reactFlowType = "protoOutputNode";
         if (isSchemaNode) reactFlowType = "protoSchemaNode";
@@ -575,7 +544,6 @@ export const ProtoEditor = () => {
             label: nodeDef.display_name || nodeDef.name,
             streamingContent: "",
             isStreaming: false,
-            // Expose context and json_schema inputs by default for agent nodes
             exposedInputs: isAgentNode ? ["context", "json_schema"] : [],
           },
         };
@@ -591,12 +559,8 @@ export const ProtoEditor = () => {
   return (
     <ProtoEditorContext.Provider value={{ onExecuteFromNode: handleExecute }}>
       <div ref={reactFlowWrapper} className="relative h-full w-full">
-        {/* Workflow Toolbar - Top */}
-        <ProtoWorkflowToolbar
-          onSave={handleSave}
-          onLoad={handleLoad}
-          onNew={handleNew}
-        />
+        {/* Workflow Toolbar */}
+        <ProtoWorkflowToolbar />
 
         {/* React Flow Canvas */}
         <ReactFlow
@@ -623,17 +587,17 @@ export const ProtoEditor = () => {
           />
         </ReactFlow>
 
-        {/* Node Browser - Left Side */}
+        {/* Node Browser */}
         <ProtoNodeBrowser onAddNode={handleAddNode} />
 
-        {/* Properties Panel - Right Side */}
+        {/* Properties Panel */}
         <ProtoPropertiesPanel
           selectedNode={selectedNode}
           onClose={() => setSelectedNode(null)}
           onUpdateNode={handleUpdateNode}
         />
 
-        {/* Execution Bar - Bottom */}
+        {/* Execution Bar */}
         <ProtoExecutionBar
           isExecuting={isExecuting}
           onExecute={handleExecute}
