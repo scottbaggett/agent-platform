@@ -1,0 +1,14 @@
+{
+  "name": "@agent-platform/backend",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Python-based LangGraph execution server",
+  "scripts": {
+    "dev": "python main.py",
+    "lint": "make lint",
+    "format": "make format",
+    "typecheck": "make typecheck",
+    "test": "echo \"No tests configured\"",
+    "clean": "find . -type d -name '__pycache__' -exec rm -rf {} + && rm -rf .ruff_cache .mypy_cache"
+  }
+}

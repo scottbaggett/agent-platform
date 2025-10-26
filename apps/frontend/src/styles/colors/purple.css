@@ -1,0 +1,146 @@
+:root,
+.light,
+.light-theme {
+  --purple-1: #f8fbff;
+  --purple-2: #f5f8ff;
+  --purple-3: #eaeeff;
+  --purple-4: #e0e5ff;
+  --purple-5: #d7ddff;
+  --purple-6: #ced5ff;
+  --purple-7: #c2c9ff;
+  --purple-8: #abb2ff;
+  --purple-9: #7975ff;
+  --purple-10: #6e64ff;
+  --purple-11: #5533f3;
+  --purple-12: #1d006e;
+
+  --purple-a1: #006eff07;
+  --purple-a2: #004dff0a;
+  --purple-a3: #0031ff15;
+  --purple-a4: #002aff1f;
+  --purple-a5: #0027ff28;
+  --purple-a6: #0025ff31;
+  --purple-a7: #001eff3d;
+  --purple-a8: #0016ff54;
+  --purple-a9: #0800ff8a;
+  --purple-a10: #1100ff9b;
+  --purple-a11: #2b00f0cc;
+  --purple-a12: #1d006e;
+
+  --purple-contrast: #ffffff;
+  --purple-surface: #ffffffcc;
+  --purple-indicator: #7975ff;
+  --purple-track: #7975ff;
+}
+
+@supports (color: color(display-p3 1 1 1)) {
+  @media (color-gamut: p3) {
+    :root,
+    .light,
+    .light-theme {
+      --purple-1: oklch(99.2% 0.0296 279.5);
+      --purple-2: oklch(98.3% 0.0536 279.5);
+      --purple-3: oklch(95.6% 0.0969 279.5);
+      --purple-4: oklch(93.2% 0.1277 279.5);
+      --purple-5: oklch(90.9% 0.165 279.5);
+      --purple-6: oklch(88.6% 0.1895 279.5);
+      --purple-7: oklch(85.4% 0.2335 279.5);
+      --purple-8: oklch(79.4% 0.3161 279.5);
+      --purple-9: oklch(64.6% 0.3186 279.5);
+      --purple-10: oklch(61.1% 0.3028 279.5);
+      --purple-11: oklch(50.5% 0.2619 279.5);
+      --purple-12: oklch(24.5% 0.2193 279.5);
+
+      --purple-a1: color(display-p3 0.0235 0.349 1 / 0.024);
+      --purple-a2: color(display-p3 0.0235 0.2392 0.8941 / 0.036);
+      --purple-a3: color(display-p3 0.0078 0.1569 0.902 / 0.079);
+      --purple-a4: color(display-p3 0.0039 0.1373 0.9373 / 0.118);
+      --purple-a5: color(display-p3 0.0039 0.1294 0.9255 / 0.153);
+      --purple-a6: color(display-p3 0.0078 0.1294 0.9412 / 0.189);
+      --purple-a7: color(display-p3 0.0039 0.1059 0.9373 / 0.236);
+      --purple-a8: color(display-p3 0.0039 0.0745 0.9294 / 0.326);
+      --purple-a9: color(display-p3 0.0235 0 0.9412 / 0.542);
+      --purple-a10: color(display-p3 0.051 0 0.9412 / 0.608);
+      --purple-a11: color(display-p3 0.1333 0 0.8941 / 0.793);
+      --purple-a12: color(display-p3 0.098 0 0.4078 / 0.997);
+
+      --purple-contrast: #ffffff;
+      --purple-surface: color(display-p3 1 1 1 / 80%);
+      --purple-indicator: oklch(64.6% 0.3186 279.5);
+      --purple-track: oklch(64.6% 0.3186 279.5);
+    }
+  }
+}
+
+/* purple */
+.dark,
+.dark-theme {
+  --purple-1: #100f1d;
+  --purple-2: #171527;
+  --purple-3: #251f48;
+  --purple-4: #302461;
+  --purple-5: #392d6f;
+  --purple-6: #43387e;
+  --purple-7: #514693;
+  --purple-8: #6556b5;
+  --purple-9: #907cff;
+  --purple-10: #8570f1;
+  --purple-11: #b2a7ff;
+  --purple-12: #dfdeff;
+
+  --purple-a1: #0000fd0d;
+  --purple-a2: #513cfb18;
+  --purple-a3: #684eff3b;
+  --purple-a4: #6d4aff56;
+  --purple-a5: #7658ff65;
+  --purple-a6: #7e66ff75;
+  --purple-a7: #8571fe8c;
+  --purple-a8: #8b75ffb0;
+  --purple-a9: #907cff;
+  --purple-a10: #8c76fff0;
+  --purple-a11: #b2a7ff;
+  --purple-a12: #dfdeff;
+
+  --purple-contrast: #fff;
+  --purple-surface: #1d193d80;
+  --purple-indicator: #907cff;
+  --purple-track: #907cff;
+}
+
+@supports (color: color(display-p3 1 1 1)) {
+  @media (color-gamut: p3) {
+    .dark,
+    .dark-theme {
+      --purple-1: oklch(17.8% 0.028 287.2);
+      --purple-2: oklch(20.9% 0.035 287.2);
+      --purple-3: oklch(27% 0.073 287.2);
+      --purple-4: oklch(31.2% 0.103 287.2);
+      --purple-5: oklch(34.9% 0.11 287.2);
+      --purple-6: oklch(39% 0.113 287.2);
+      --purple-7: oklch(44.5% 0.123 287.2);
+      --purple-8: oklch(51.5% 0.145 287.2);
+      --purple-9: oklch(66.7% 0.187 287.2);
+      --purple-10: oklch(62.7% 0.187 287.2);
+      --purple-11: oklch(77.8% 0.15 287.2);
+      --purple-12: oklch(91.2% 0.05 287.2);
+
+      --purple-a1: color(display-p3 0 0 0.988 / 0.047);
+      --purple-a2: color(display-p3 0.333 0.243 0.992 / 0.089);
+      --purple-a3: color(display-p3 0.408 0.318 1 / 0.219);
+      --purple-a4: color(display-p3 0.42 0.298 0.996 / 0.32);
+      --purple-a5: color(display-p3 0.459 0.357 0.996 / 0.379);
+      --purple-a6: color(display-p3 0.494 0.416 1 / 0.442);
+      --purple-a7: color(display-p3 0.529 0.463 1 / 0.526);
+      --purple-a8: color(display-p3 0.549 0.478 1 / 0.664);
+      --purple-a9: color(display-p3 0.569 0.502 0.996 / 0.967);
+      --purple-a10: color(display-p3 0.553 0.478 0.996 / 0.908);
+      --purple-a11: color(display-p3 0.71 0.671 1 / 0.975);
+      --purple-a12: color(display-p3 0.886 0.882 1 / 0.988);
+
+      --purple-contrast: #fff;
+      --purple-surface: color(display-p3 0.11 0.094 0.227 / 0.5);
+      --purple-indicator: oklch(66.7% 0.187 287.2);
+      --purple-track: oklch(66.7% 0.187 287.2);
+    }
+  }
+}

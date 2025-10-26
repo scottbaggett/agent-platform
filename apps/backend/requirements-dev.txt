@@ -1,0 +1,11 @@
+# Development dependencies
+-r requirements.txt
+
+# Linting and formatting
+ruff==0.14.2
+
+# Type checking
+mypy==1.18.2
+
+# Type stubs for libraries
+types-requests==2.32.4.20250913

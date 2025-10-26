@@ -1,0 +1,169 @@
+:root {
+  --xy-edge-stroke-width: 1.5;
+  --xy-edge-stroke-selected: var(--color-edge-active);
+  --xy-connectionline-stroke: var(--color-edge-active);
+  --xy-connectionline-stroke-width: 2.5;
+  --xy-background-color-props: var(--color-canvas);
+  --xy-minimap-background-color-default: black;
+  --xy-minimap-mask-background-color-default: var(--color-surface-a7);
+  --xy-minimap-mask-stroke-color-default: var(--color-surface-a7);
+  --xy-minimap-mask-stroke-width-default: 1;
+  --xy-minimap-node-background-color-default: var(--color-surface-a5);
+  --xy-minimap-node-stroke-color-default: var(--color-surface-a7);
+  --xy-minimap-node-stroke-width-default: 1;
+
+  /* Background */
+  --canvas: var(--gray-4);
+  --canvas-grid: var(--gray-7);
+
+  --editor-panel: var(--color-surface-1);
+
+  /* Nodes & Edges */
+
+  --color-resize-handle: var(--color-surface-12);
+
+  /* React Flow */
+  --xy-minimap-node-background-color-props: var(--color-surface-8);
+  --xy-minimap-mask-background-color: var(--color-surface-a4);
+  --xy-minimap-background-color-props: var(--color-surface-4);
+  --xy-background-pattern-lines-color-default: var(--color-surface-4);
+  --xy-background-pattern-cross-color-default: var(--color-surface-4);
+}
+
+.dark {
+  --canvas: var(--mercury-1);
+  --canvas-grid: var(--mercury-4);
+}
+
+@theme {
+  --node-row-height: 24px;
+
+  /* Node color utilities - inherit from data-node-color context */
+  --color-node: var(--color-node);
+  --color-node-foreground: var(--color-node-foreground);
+  --color-node-secondary: var(--color-node-secondary);
+  --color-node-secondary-foreground: var(--color-node-secondary-foreground);
+  --color-node-muted-foreground: var(--color-node-muted-foreground);
+  --color-node-primary: var(--color-node-primary);
+  --color-node-primary-foreground: var(--color-node-primary-foreground);
+  --color-node-border: var(--color-node-border);
+  --color-node-highlight: var(--color-node-highlight);
+  --color-node-border-hover: var(--color-node-border-hover);
+  --color-node-border-focus: var(--color-node-border-focus);
+  --color-node-input: var(--color-node-input);
+  --color-node-input-slider: var(--color-node-input-slider);
+  --color-node-input-label: var(--color-node-input-label);
+  --color-node-handle-bg: var(--color-node-handle-bg);
+  --color-node-handle-border: var(--color-node-handle-border);
+
+  /* Node color aliases for backward compatibility */
+  --color-node-input-bg: var(--color-node-input-bg);
+  --color-node-input-fg: var(--color-node-input-fg);
+  --color-node-input-label-base: var(--color-node-input-label-base);
+  --color-node-focus: var(--color-node-focus);
+
+  /* Edge Type Colors */
+  --color-edge-clip: #efb080;
+  --color-edge-model: #63c4ba;
+  --color-edge-clip-vision: #89cacc;
+  --color-edge-clip-vision-output: #ad7452;
+  --color-edge-conditioning: #efb080;
+  --color-edge-controlnet: #6ee7b7;
+  --color-edge-image: #64b5f6;
+  --color-edge-latent: #cd8fc9;
+  --color-edge-mask: #81c784;
+  --color-edge-style-model: #c2ffae;
+  --color-edge-vae: #f59696;
+  --color-edge-taesd: #dcc274;
+
+  --color-edge-base: var(--color-surface-8);
+  --color-edge-highlighted: var(--color-surface-12);
+  --color-edge-active: var(--color-surface-12);
+
+  --color-editor-panel: var(--editor-panel);
+
+  --color-canvas: var(--canvas);
+  --color-canvas-grid: var(--canvas-grid);
+}
+
+.react-flow__edge-path,
+.react-flow__connection-path {
+  stroke: #666 !important; /* pick any visible color */
+  stroke-width: 2 !important;
+  opacity: 1 !important;
+}
+
+.react-flow__edges {
+  opacity: 1 !important;
+}
+
+.react-flow__edge {
+  display: inline !important;
+}
+
+.react-flow {
+  color: initial !important; /* avoid currentColor being transparent or same as bg */
+}
+
+.react-flow__edge {
+  &.selected,
+  &.selectable:focus,
+  &.selectable:focus-visible {
+    .react-flow__edge-path {
+      stroke-width: 2.5;
+    }
+  }
+
+  &.reconnecting {
+    .react-flow__edge-path {
+      stroke: var(--color-edge-active);
+      stroke-width: 2.5;
+    }
+  }
+}
+
+.react-flow__node {
+  margin: 0;
+  display: grid;
+  height: auto;
+  border-radius: var(--radius-md);
+}
+
+.react-flow__edge-path {
+  stroke: var(--color-edge-base);
+  opacity: 1;
+}
+
+.react-flow__edge-path.highlight {
+  stroke: var(--color-edge-highlighted);
+}
+
+.react-flow__edge:not(.selected):not(.reconnecting) {
+  .react-flow__edge-path {
+    stroke: var(--color-edge-base);
+    stroke-width: var(--xy-edge-stroke-width);
+  }
+}
+
+.react-flow__minimap {
+  opacity: 0.75;
+}
+
+.node label,
+.node-widget-label {
+  color: var(--color-muted-foreground);
+}
+
+.llm-output {
+  padding: 0.5rem;
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  pre,
+  p {
+    margin: 0.5rem 0;
+  }
+}

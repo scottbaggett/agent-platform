@@ -1,0 +1,24 @@
+{
+  "name": "agent-platform",
+  "version": "0.1.0",
+  "private": true,
+  "author": "Scott Baggett <hello@scottbaggett.com>",
+  "description": "Advanced AI Workflow Platform",
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "lint": "turbo run lint",
+    "format": "turbo run format",
+    "typecheck": "turbo run typecheck",
+    "clean": "turbo run clean && rm -rf node_modules .turbo"
+  },
+  "devDependencies": {
+    "turbo": "^2.3.3"
+  },
+  "engines": {
+    "node": ">=18",
+    "pnpm": ">=9"
+  },
+  "packageManager": "pnpm@9.15.0"
+}

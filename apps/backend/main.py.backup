@@ -1,0 +1,748 @@
+"""
+Prototype LangGraph Execution Server
+Quick and dirty server for prototyping LangGraph nodes in the Salt workflow UI
+"""
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
+import asyncio
+import json
+import os
+import logging
+from logging.handlers import RotatingFileHandler
+from datetime import datetime
+from typing import Dict, List, Any
+from dotenv import load_dotenv
+from langchain_openai import ChatOpenAI
+from langchain_anthropic import ChatAnthropic
+from langchain.schema import HumanMessage
+
+# Load environment variables
+load_dotenv()
+
+# Setup logging
+os.makedirs("logs", exist_ok=True)
+
+# Create logger
+logger = logging.getLogger("proto_engine")
+logger.setLevel(logging.DEBUG)
+
+# File handler with rotation (10MB max, keep 5 backup files)
+file_handler = RotatingFileHandler(
+    "logs/proto_engine.log",
+    maxBytes=10 * 1024 * 1024,  # 10MB
+    backupCount=5,
+    encoding="utf-8",
+)
+file_handler.setLevel(logging.DEBUG)
+
+# Console handler
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.INFO)
+
+# Formatter
+formatter = logging.Formatter(
+    "%(asctime)s | %(levelname)-8s | %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
+)
+file_handler.setFormatter(formatter)
+console_handler.setFormatter(formatter)
+
+# Add handlers
+logger.addHandler(file_handler)
+logger.addHandler(console_handler)
+
+app = FastAPI(title="Proto Execution Engine", version="0.1.0")
+
+# CORS for local development
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:5173",
+    ],  # Vite default ports
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+# Example node definitions - customize these for your LangGraph experiments
+EXPERIMENTAL_NODES = {
+    "ProtoAgentNode": {
+        "name": "ProtoAgentNode",
+        "display_name": "Agent",
+        "category": "experimental",
+        "short_description": "LangGraph agent with LLM and tools",
+        "icon": "brain",
+        "inputs": [
+            {
+                "name": "prompt",
+                "type": "STRING",
+                "widget": {
+                    "widgetType": "DYNAMIC_STRING",
+                    "parameters": {
+                        "multiline": True,
+                        "placeholder": "Enter your prompt with {{variables}}...",
+                    },
+                },
+            },
+            {
+                "name": "model",
+                "type": "STRING",
+                "widget": {
+                    "widgetType": "COMBO",
+                    "options": [
+                        "gpt-5",
+                        "gpt-5-mini",
+                        "gpt-5-nano",
+                        "o3",
+                        "o4-mini",
+                        "o3-mini",
+                        "gpt-4.1",
+                        "gpt-4o",
+                        "gpt-4o-mini",
+                        "claude-opus-4-20250514",
+                        "claude-sonnet-4-20250514",
+                        "claude-3-5-haiku-20241022",
+                    ],
+                },
+            },
+            {
+                "name": "temperature",
+                "type": "FLOAT",
+                "widget": {
+                    "widgetType": "SLIDER",
+                    "parameters": {
+                        "min": 0.0,
+                        "max": 2.0,
+                        "step": 0.1,
+                    },
+                },
+                "default": 0.7,
+            },
+            {
+                "name": "output_type",
+                "type": "STRING",
+                "widget": {
+                    "widgetType": "COMBO",
+                    "options": ["text", "json"],
+                },
+                "default": "text",
+            },
+            {
+                "name": "json_schema",
+                "type": "JSON",
+                "widget": {
+                    "widgetType": "JSON_SCHEMA",
+                },
+                "default": {},
+            },
+        ],
+        "outputs": [
+            {"name": "response", "type": "STRING"},
+        ],
+        "widgets": [],
+    },
+    "ProtoOutputNode": {
+        "name": "ProtoOutputNode",
+        "display_name": "Output Viewer",
+        "category": "output",
+        "short_description": "Displays streaming output from connected nodes",
+        "icon": "monitor",
+        "inputs": [
+            {
+                "name": "content",
+                "type": "STRING",
+            }
+        ],
+        "outputs": [],
+        "widgets": [],
+    },
+    "ProtoSchemaNode": {
+        "name": "ProtoSchemaNode",
+        "display_name": "JSON Schema",
+        "category": "data",
+        "short_description": "Define reusable JSON schema for structured LLM output",
+        "icon": "braces",
+        "inputs": [
+            {
+                "name": "schema_definition",
+                "type": "JSON",
+                "widget": {
+                    "widgetType": "JSON_SCHEMA",
+                },
+                "default": {},
+            }
+        ],
+        "outputs": [
+            {"name": "schema", "type": "JSON"},
+        ],
+        "widgets": [],
+    },
+    "ProtoDynamicTextNode": {
+        "name": "ProtoDynamicTextNode",
+        "display_name": "Dynamic Text",
+        "category": "text",
+        "short_description": "Compose text with variable interpolation using {{variable}} syntax",
+        "icon": "type",
+        "inputs": [
+            {
+                "name": "text",
+                "type": "STRING",
+                "widget": {
+                    "widgetType": "DYNAMIC_STRING",
+                    "parameters": {
+                        "multiline": True,
+                        "placeholder": "Enter text with {{variables}}...",
+                    },
+                },
+                "default": "",
+            }
+        ],
+        "outputs": [
+            {"name": "output", "type": "STRING"},
+        ],
+        "widgets": [],
+    },
+}
+
+
+class WorkflowRequest(BaseModel):
+    nodes: Dict[str, Any]
+    edges: List[Dict[str, Any]]
+
+
+@app.get("/")
+async def root():
+    return {
+        "service": "Proto Execution Engine",
+        "status": "running",
+        "endpoints": {"nodes": "/nodes", "execute": "/execute"},
+    }
+
+
+@app.get("/nodes")
+async def get_nodes():
+    """Return experimental node definitions for the frontend"""
+    return {"nodes": list(EXPERIMENTAL_NODES.values())}
+
+
+@app.post("/execute")
+async def execute_workflow(request: WorkflowRequest):
+    """
+    Execute workflow and stream progress via Server-Sent Events
+
+    Events streamed:
+    - workflow_start: Execution begins
+    - node_start: Node execution starting
+    - node_progress: Progress update during node execution
+    - node_complete: Node finished with output
+    - node_error: Node encountered error
+    - workflow_complete: All done
+    """
+
+    logger.info("=" * 80)
+    logger.info("🚀 EXECUTION STARTED")
+    logger.info(f"Received {len(request.nodes)} nodes and {len(request.edges)} edges")
+    logger.info(f"Nodes: {list(request.nodes.keys())}")
+    logger.debug(f"Edges: {request.edges}")
+    logger.info("=" * 80)
+
+    async def event_stream():
+        try:
+            # Start workflow
+            logger.info("📤 Sending workflow_start event")
+            yield f"data: {json.dumps({'event': 'workflow_start', 'timestamp': asyncio.get_event_loop().time()})}\n\n"
+
+            # Track node outputs for context variable resolution
+            node_outputs = {}
+
+            # Build dependency graph for topological sort
+            from collections import defaultdict, deque
+
+            in_degree = {node_id: 0 for node_id in request.nodes.keys()}
+            adjacency = defaultdict(list)
+
+            # Build graph from edges
+            for edge in request.edges:
+                source = edge["source"]
+                target = edge["target"]
+                if source in request.nodes and target in request.nodes:
+                    adjacency[source].append(target)
+                    in_degree[target] += 1
+
+            # Topological sort using Kahn's algorithm
+            queue = deque([node_id for node_id, degree in in_degree.items() if degree == 0])
+            execution_order = []
+
+            while queue:
+                node_id = queue.popleft()
+                execution_order.append(node_id)
+
+                for neighbor in adjacency[node_id]:
+                    in_degree[neighbor] -= 1
+                    if in_degree[neighbor] == 0:
+                        queue.append(neighbor)
+
+            # Check for cycles
+            if len(execution_order) != len(request.nodes):
+                raise Exception("Workflow contains a cycle - cannot execute")
+
+            logger.info(f"📋 Execution order: {execution_order}")
+
+            # Execute each node in dependency order
+            for node_id in execution_order:
+                node_data = request.nodes[node_id]
+                logger.info(f"\n{'=' * 80}")
+                logger.info(f"🔵 Processing node: {node_id}")
+                # Get node type from data.nodeType (frontend structure)
+                node_type = node_data.get("data", {}).get("nodeType", "unknown")
+                logger.info(f"Node type: {node_type}")
+                logger.debug(f"Node data: {node_data}")
+
+                # Node start
+                logger.info(f"📤 Sending node_start event for {node_id}")
+                yield f"data: {json.dumps({'event': 'node_start', 'node_id': node_id, 'node_type': node_type})}\n\n"
+
+                # Simulate execution with progress updates
+                await asyncio.sleep(0.5)
+                logger.debug(f"📤 Sending node_progress (30%) for {node_id}")
+                yield f"data: {json.dumps({'event': 'node_progress', 'node_id': node_id, 'progress': 0.3, 'message': 'Processing...'})}\n\n"
+
+                await asyncio.sleep(0.5)
+                logger.debug(f"📤 Sending node_progress (70%) for {node_id}")
+                yield f"data: {json.dumps({'event': 'node_progress', 'node_id': node_id, 'progress': 0.7, 'message': 'Almost done...'})}\n\n"
+
+                await asyncio.sleep(0.5)
+
+                # Execute actual node logic here
+                # For output nodes, stream content chunks
+                if node_type == "ProtoOutputNode":
+                    logger.info(f"🎯 Executing ProtoOutputNode: {node_id}")
+
+                    # Find the edge connecting to this output node
+                    content = ""
+                    for edge in request.edges:
+                        if edge["target"] == node_id:
+                            source_node_id = edge["source"]
+                            source_handle = edge.get("sourceHandle", "output")
+                            target_handle = edge.get("targetHandle", "content")
+
+                            logger.info(f"   🔗 Edge: {source_node_id}[{source_handle}] → {target_handle}")
+
+                            if source_node_id in node_outputs:
+                                source_output = node_outputs[source_node_id]
+                                logger.info(f"   💾 Source output keys: {list(source_output.keys()) if isinstance(source_output, dict) else 'not a dict'}")
+
+                                # Get the value from the source output
+                                if isinstance(source_output, dict) and source_handle in source_output:
+                                    content = str(source_output[source_handle])
+                                    logger.info(f"   ✅ Found value in source_output[{source_handle}]: '{content[:100]}'")
+                                elif isinstance(source_output, dict) and "response" in source_output:
+                                    content = str(source_output["response"])
+                                    logger.info(f"   ✅ Found value in source_output['response']: '{content[:100]}'")
+                                elif isinstance(source_output, dict) and "output" in source_output:
+                                    content = str(source_output["output"])
+                                    logger.info(f"   ✅ Found value in source_output['output']: '{content[:100]}'")
+                                else:
+                                    content = str(source_output)
+                                    logger.info(f"   ⚠️ Using str(source_output): '{content[:100]}'")
+                                break
+                            else:
+                                logger.warning(f"   ⚠️ Source node {source_node_id} not in node_outputs yet")
+
+                    result = {"content": content}
+                    logger.info(f"✅ ProtoOutputNode complete: {len(content)} characters")
+                elif node_type == "ProtoAgentNode":
+                    logger.info(
+                        f"🎯 Executing ProtoAgentNode with streaming: {node_id}"
+                    )
+                    # Stream LLM response
+                    node_inputs = node_data.get("data", {}).get("nodeInputs", {})
+                    prompt = node_inputs.get("prompt", "")
+                    model = node_inputs.get("model", "gpt-4")
+                    temperature = node_inputs.get("temperature", 0.7)
+                    output_type = node_inputs.get("output_type", "text")
+                    json_schema = node_inputs.get("json_schema", {})
+
+                    logger.debug(f"   Original prompt: '{prompt[:100]}...'")
+
+                    # Check if json_schema input has a direct connection from schema node
+                    schema_edges = [
+                        edge
+                        for edge in request.edges
+                        if edge["target"] == node_id
+                        and edge.get("targetHandle") == "json_schema"
+                    ]
+
+                    if schema_edges and not json_schema:
+                        # Get schema from connected schema node
+                        source_edge = schema_edges[0]
+                        source_node_id = source_edge["source"]
+                        source_handle = source_edge.get("sourceHandle", "schema")
+
+                        if source_node_id in node_outputs:
+                            source_output = node_outputs[source_node_id]
+                            if (
+                                isinstance(source_output, dict)
+                                and source_handle in source_output
+                            ):
+                                json_schema = source_output[source_handle]
+                            elif (
+                                isinstance(source_output, dict)
+                                and "schema" in source_output
+                            ):
+                                json_schema = source_output["schema"]
+                            logger.info(
+                                f"   📥 Loaded schema from connected node {source_node_id}"
+                            )
+
+                    # Resolve {{variables}} in prompt with connected node values
+                    full_prompt = resolve_context_variables(
+                        prompt=prompt,
+                        node_id=node_id,
+                        nodes=request.nodes,
+                        edges=request.edges,
+                        node_outputs=node_outputs,
+                    )
+                    logger.debug(f"   Resolved prompt: '{full_prompt[:100]}...'")
+
+                    logger.info(f"   Model: {model}")
+                    logger.info(f"   Temperature: {temperature}")
+                    logger.info(f"   Output type: {output_type}")
+
+                    # Find connected output nodes
+                    connected_outputs = [
+                        edge["target"]
+                        for edge in request.edges
+                        if edge["source"] == node_id
+                    ]
+                    logger.debug(f"   Connected outputs: {connected_outputs}")
+
+                    accumulated = ""
+                    try:
+                        async for chunk in stream_llm_response(
+                            full_prompt, model, temperature, output_type, json_schema
+                        ):
+                            accumulated += chunk
+                            logger.debug(f"📤 Streaming token: '{chunk}'")
+                            # Stream to all connected output nodes
+                            for output_id in connected_outputs:
+                                yield f"data: {json.dumps({'event': 'node_stream', 'node_id': output_id, 'content': accumulated})}\n\n"
+                    except Exception as e:
+                        logger.error(f"❌ LLM Error: {str(e)}")
+                        accumulated = f"Error: {str(e)}"
+
+                    # Parse JSON output and extract properties if schema is used
+                    output_type = node_inputs.get("output_type", "text")
+                    if output_type == "json":
+                        try:
+                            # Try to parse the JSON response
+                            parsed_json = json.loads(accumulated)
+                            # Store the full response
+                            result = {"response": accumulated}
+                            # Also add individual properties as separate outputs
+                            if isinstance(parsed_json, dict):
+                                for key, value in parsed_json.items():
+                                    result[key] = value
+                                logger.info(f"✅ ProtoAgentNode complete: JSON with {len(parsed_json)} properties")
+                            else:
+                                logger.info(f"✅ ProtoAgentNode complete: {len(accumulated)} chars")
+                        except json.JSONDecodeError:
+                            logger.warning(f"⚠️ Failed to parse JSON output, storing as text")
+                            result = {"response": accumulated}
+                            logger.info(f"✅ ProtoAgentNode complete: {len(accumulated)} chars")
+                    else:
+                        result = {"response": accumulated}
+                        logger.info(f"✅ ProtoAgentNode complete: {len(accumulated)} chars")
+                elif node_type == "ProtoSchemaNode":
+                    logger.info(f"🎯 Executing ProtoSchemaNode: {node_id}")
+                    # Schema nodes just output their configured schema
+                    node_inputs = node_data.get("data", {}).get("nodeInputs", {})
+                    schema = node_inputs.get("schema_definition", {})
+                    result = {"schema": schema}
+                    logger.info(
+                        f"✅ ProtoSchemaNode complete: {schema.get('name', 'unnamed')} schema"
+                    )
+                elif node_type == "ProtoDynamicTextNode":
+                    logger.info(f"🎯 Executing ProtoDynamicTextNode: {node_id}")
+                    # Dynamic text nodes interpolate variables from context
+                    node_inputs = node_data.get("data", {}).get("nodeInputs", {})
+                    text_template = node_inputs.get("text", "")
+                    logger.info(f"   📝 Template: '{text_template}'")
+
+                    # Collect values from all connected inputs
+                    variable_values = {}
+                    for edge in request.edges:
+                        if edge["target"] == node_id:
+                            source_node_id = edge["source"]
+                            source_handle = edge.get("sourceHandle", "output")
+                            target_handle = edge.get("targetHandle", "")
+
+                            logger.info(f"   🔗 Edge: {source_node_id}[{source_handle}] → {target_handle}")
+
+                            if source_node_id in node_outputs:
+                                source_output = node_outputs[source_node_id]
+                                logger.info(f"   💾 Source output keys: {list(source_output.keys()) if isinstance(source_output, dict) else 'not a dict'}")
+
+                                # Get the value from the source output
+                                if isinstance(source_output, dict) and source_handle in source_output:
+                                    value = source_output[source_handle]
+                                    logger.info(f"   ✅ Found value in source_output[{source_handle}]")
+                                elif isinstance(source_output, dict) and "response" in source_output:
+                                    value = source_output["response"]
+                                    logger.info(f"   ✅ Found value in source_output['response']")
+                                elif isinstance(source_output, dict) and "output" in source_output:
+                                    value = source_output["output"]
+                                    logger.info(f"   ✅ Found value in source_output['output']")
+                                else:
+                                    value = str(source_output)
+                                    logger.info(f"   ⚠️ Using str(source_output)")
+
+                                # Store with the target handle name as the variable name
+                                if target_handle:
+                                    variable_values[target_handle] = value
+                                    logger.info(f"   📥 Stored variable '{target_handle}' = '{str(value)[:100]}'")
+                            else:
+                                logger.warning(f"   ⚠️ Source node {source_node_id} not in node_outputs yet")
+
+                    logger.info(f"   🗂️ Collected variables: {list(variable_values.keys())}")
+
+                    # Replace {{variable}} with values from connected nodes
+                    import re
+                    output_text = text_template
+                    for match in re.finditer(r'\{\{([^}]+)\}\}', text_template):
+                        variable_name = match.group(1).strip()
+                        # Get value from collected variable values
+                        variable_value = variable_values.get(variable_name, f"{{{{missing: {variable_name}}}}}")
+                        logger.info(f"   🔄 Replacing {{{{variable_name}}}} with '{str(variable_value)[:50]}'")
+                        output_text = output_text.replace(match.group(0), str(variable_value))
+
+                    logger.info(f"   📤 Final output: '{output_text}'")
+                    result = {"output": output_text}
+                    logger.info(f"✅ ProtoDynamicTextNode complete: {len(output_text)} characters")
+                else:
+                    logger.info(f"🎯 Executing {node_type}: {node_id}")
+                    result = await execute_node(node_type, node_data)
+                    logger.info(f"✅ Node complete with result: {result}")
+
+                # Store node output for context variable resolution
+                node_outputs[node_id] = result
+                logger.debug(f"💾 Stored output for {node_id}: {result}")
+
+                # Node complete
+                logger.info(f"📤 Sending node_complete event for {node_id}")
+                yield f"data: {json.dumps({'event': 'node_complete', 'node_id': node_id, 'output': result})}\n\n"
+
+            # Workflow complete
+            logger.info(f"\n{'=' * 80}")
+            logger.info("✅ WORKFLOW COMPLETE")
+            logger.info(f"{'=' * 80}\n")
+            yield f"data: {json.dumps({'event': 'workflow_complete', 'timestamp': asyncio.get_event_loop().time()})}\n\n"
+
+        except Exception as e:
+            logger.error(f"\n{'=' * 80}")
+            logger.error(f"❌ ERROR: {str(e)}")
+            logger.error(f"{'=' * 80}\n")
+            yield f"data: {json.dumps({'event': 'error', 'message': str(e)})}\n\n"
+
+    return StreamingResponse(event_stream(), media_type="text/event-stream")
+
+
+def resolve_context_variables(
+    prompt: str,
+    node_id: str,
+    nodes: Dict[str, Any],
+    edges: List[Dict[str, Any]],
+    node_outputs: Dict[str, Any],
+) -> str:
+    """
+    Resolve {{variable}} placeholders in prompt with actual values from connected nodes
+
+    Args:
+        prompt: The prompt text with {{variable}} placeholders
+        node_id: ID of the current node
+        nodes: Dict of all nodes in the workflow
+        edges: List of all edges in the workflow
+        node_outputs: Dict of node outputs accumulated during execution
+
+    Returns:
+        Prompt with variables replaced by actual values
+    """
+    import re
+
+    # Find all {{variable}} patterns
+    pattern = r"\{\{([^}]+)\}\}"
+    matches = re.finditer(pattern, prompt)
+
+    resolved_prompt = prompt
+
+    for match in matches:
+        variable_name = match.group(1).strip()
+        logger.debug(f"   🔍 Resolving variable: {{{{variable_name}}}}")
+
+        # Find edges connecting to this node's input with name matching variable_name
+        incoming_edges = [
+            edge
+            for edge in edges
+            if edge["target"] == node_id and edge.get("targetHandle") == variable_name
+        ]
+
+        if incoming_edges:
+            # Get the source node output
+            source_edge = incoming_edges[0]
+            source_node_id = source_edge["source"]
+            source_handle = source_edge.get("sourceHandle", "response")
+
+            # Look up the output from the source node
+            if source_node_id in node_outputs:
+                source_output = node_outputs[source_node_id]
+                # Get the specific output handle value
+                if isinstance(source_output, dict) and source_handle in source_output:
+                    value = source_output[source_handle]
+                elif isinstance(source_output, dict) and "response" in source_output:
+                    value = source_output["response"]
+                else:
+                    value = str(source_output)
+
+                logger.info(
+                    f"   ✅ Resolved {{{{{{variable_name}}}}}} -> '{value[:100]}...'"
+                )
+                resolved_prompt = resolved_prompt.replace(
+                    f"{{{{{variable_name}}}}}", str(value)
+                )
+            else:
+                logger.warning(f"   ⚠️  Source node {source_node_id} has no output yet")
+        else:
+            logger.warning(f"   ⚠️  No connection found for variable: {variable_name}")
+
+    return resolved_prompt
+
+
+async def stream_llm_response(
+    prompt: str,
+    model: str,
+    temperature: float = 0.7,
+    output_type: str = "text",
+    json_schema: dict = None,
+):
+    """
+    Stream LLM response token by token
+    Supports both OpenAI and Anthropic models
+    Handles both text and structured JSON output
+    """
+    logger.info(f"🤖 Initializing LLM: {model}")
+    logger.info(f"   Output type: {output_type}")
+    if output_type == "json" and json_schema:
+        logger.debug(f"   JSON schema: {json_schema}")
+
+    try:
+        # Check if model has temperature restrictions
+        # o-series and GPT-5 models only support default temperature
+        is_restricted_temp = any(
+            x in model.lower() for x in ["o1", "o2", "o3", "o4", "gpt-5"]
+        )
+
+        # Determine which provider to use based on model name
+        if "gpt" in model.lower() or is_restricted_temp:
+            # OpenAI models
+            llm_kwargs = {
+                "model": model,
+                "streaming": True,
+            }
+            # Only add temperature for models that support it
+            if not is_restricted_temp:
+                llm_kwargs["temperature"] = temperature
+
+            llm = ChatOpenAI(**llm_kwargs)
+            logger.info(
+                f"   LLM Temperature: {'default (restricted)' if is_restricted_temp else temperature}"
+            )
+        elif "claude" in model.lower():
+            # Anthropic models (streaming is automatic, no parameter needed)
+            llm = ChatAnthropic(
+                model=model,
+                temperature=temperature,
+            )
+            logger.info(f"   LLM Temperature: {temperature}")
+        else:
+            # Default to GPT-4
+            llm = ChatOpenAI(
+                model="gpt-4",
+                temperature=temperature,
+                streaming=True,
+            )
+            logger.info(f"   LLM Temperature: {temperature}")
+
+        # Handle structured output
+        if output_type == "json" and json_schema and json_schema.get("properties"):
+            logger.info("🎯 Using structured output mode")
+
+            # Build schema for with_structured_output - needs description
+            schema = {
+                "title": json_schema.get("name", "ResponseSchema"),
+                "description": "Structured response matching the specified schema",
+                "type": "object",
+                "properties": json_schema["properties"],
+                "required": list(json_schema["properties"].keys()),
+            }
+
+            logger.debug(f"   Schema: {schema}")
+
+            # Use structured output (non-streaming for now)
+            structured_llm = llm.with_structured_output(schema)
+            result = await structured_llm.ainvoke([HumanMessage(content=prompt)])
+
+            # Convert to JSON string and yield
+            import json as json_lib
+
+            json_str = json_lib.dumps(result, indent=2)
+            yield json_str
+        else:
+            # Regular text streaming
+            logger.info(f"📡 Starting text stream for prompt: '{prompt[:50]}...'")
+            async for chunk in llm.astream([HumanMessage(content=prompt)]):
+                if hasattr(chunk, "content") and chunk.content:
+                    yield chunk.content
+
+    except Exception as e:
+        logger.error(f"❌ Streaming error: {str(e)}")
+        yield f"Error: {str(e)}"
+
+
+async def execute_node(node_type: str, node_data: dict) -> dict:
+    """
+    Execute a single node - customize this for your LangGraph logic
+
+    This is where you'd:
+    1. Parse node inputs
+    2. Build LangGraph graph
+    3. Execute with LangChain
+    4. Return outputs
+    """
+
+    # Mock execution for now
+    if node_type == "ProtoAgentNode":
+        # Get inputs from node
+        node_inputs = node_data.get("data", {}).get("nodeInputs", {})
+        prompt = node_inputs.get("prompt", "")
+        model = node_inputs.get("model", "gpt-4")
+
+        logger.debug(f"   Input prompt: '{prompt}'")
+        logger.debug(f"   Model: {model}")
+
+        return {
+            "response": f"Mock response from {model}: This is where your LangGraph agent would execute. Prompt was: '{prompt[:50]}...'",
+        }
+    else:
+        return {"output": f"Executed {node_type}"}
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    logger.info("🚀 Starting Proto Execution Engine on http://localhost:8001")
+    logger.info("📚 API docs available at http://localhost:8001/docs")
+    uvicorn.run("main:app", host="0.0.0.0", port=8001, reload=True)

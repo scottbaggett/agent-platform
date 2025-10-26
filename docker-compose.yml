@@ -1,0 +1,76 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: agent-platform-db
+    env_file:
+      - .env.docker
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./apps/backend/db/init.sql:/docker-entrypoint-initdb.d/00-init.sql:ro
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agent -d agent_platform"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - agent-network
+
+  backend:
+    build:
+      context: ./apps/backend
+      dockerfile: Dockerfile
+    container_name: agent-platform-backend
+    env_file:
+      - .env.docker
+    volumes:
+      - ./apps/backend:/app:delegated
+      - backend_cache:/app/.ruff_cache
+    ports:
+      - "8001:8001"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    networks:
+      - agent-network
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./apps/frontend
+      dockerfile: Dockerfile
+    container_name: agent-platform-frontend
+    env_file:
+      - .env.docker
+    volumes:
+      - ./apps/frontend:/app:delegated
+      - frontend_node_modules:/app/node_modules
+    ports:
+      - "3000:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - agent-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local
+  backend_cache:
+    driver: local
+  frontend_node_modules:
+    driver: local
+
+networks:
+  agent-network:
+    driver: bridge

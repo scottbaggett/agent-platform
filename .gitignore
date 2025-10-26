@@ -1,0 +1,41 @@
+# Monorepo
+.turbo
+node_modules/
+.pnpm-store/
+
+# Environment
+.env
+.env.local
+.env.*.local
+.env.docker
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Build outputs
+dist/
+build/
+.output/
+.nitro/
+.tanstack/
+
+# Testing
+coverage/
+
+# Temporary files
+*.tmp
+.cache/

@@ -1,0 +1,57 @@
+/* Mercury */
+:root {
+  --mercury-1: #fefefe;
+  --mercury-2: #f9f9fa;
+  --mercury-3: #f3f3f4;
+  --mercury-4: #ededef;
+  --mercury-5: #e6e6e9;
+  --mercury-6: #dfe3e7;
+  --mercury-7: #d6d6dc;
+  --mercury-8: #c7c7d1;
+  --mercury-9: #a3a3b2;
+  --mercury-10: #8e8e98;
+  --mercury-11: #737380;
+  --mercury-12: #09090b;
+
+  --mercury-a1: #fcfcfd03;
+  --mercury-a2: #32324d04;
+  --mercury-a3: #22223506;
+  --mercury-a4: #0c0c1810;
+  --mercury-a5: #0c0c1810;
+  --mercury-a6: #05051f13;
+  --mercury-a7: #09091b24;
+  --mercury-a8: #05051e28;
+  --mercury-a9: #02021247;
+  --mercury-a10: #03031152;
+  --mercury-a11: #02020d63;
+  --mercury-a12: #02020397;
+}
+
+/* Mercury (old gray) */
+.dark {
+  --mercury-1: #09090b;
+  --mercury-2: #121217;
+  --mercury-3: #19191f;
+  --mercury-4: #22222a;
+  --mercury-5: #30303b;
+  --mercury-6: #34343d;
+  --mercury-7: #44444f;
+  --mercury-8: #575766;
+  --mercury-9: #636370;
+  --mercury-10: #787883;
+  --mercury-11: #aaaaae;
+  --mercury-12: #ededed;
+
+  --mercury-a1: #09090b01;
+  --mercury-a2: #d2d2fe01;
+  --mercury-a3: #c8c8f913;
+  --mercury-a4: #d6d6ff16;
+  --mercury-a5: #cbcbfb20;
+  --mercury-a6: #d7d7f921;
+  --mercury-a7: #dcccfe28;
+  --mercury-a8: #d6d6fe38;
+  --mercury-a9: #d6d6fe38;
+  --mercury-a10: #e9e9fb50;
+  --mercury-a11: #f2f2fd50;
+  --mercury-a12: #ffffff90;
+}

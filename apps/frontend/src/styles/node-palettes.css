@@ -1,0 +1,401 @@
+/* ===== Standard Color Set ===== */
+/* Classic color palette */
+
+/* gray (Standard set) */
+.light [data-node-color="standard-gray"] {
+  --color-node: hsl(244.99, 10.01%, 95.87%);
+  --color-node-foreground: hsl(229.22, 14.5%, 10.87%);
+  --color-node-border: hsl(239.93, 11.5%, 58.7%);
+  --color-node-muted-foreground: hsl(226, 4%, 16%);
+  --color-node-highlight: hsla(244, 7%, 84%, 0.15);
+  --color-node-input: hsla(236, 12%, 43%, 0.6);
+}
+.dark [data-node-color="standard-gray"] {
+  --color-node: hsl(229.22, 14.5%, 10.87%);
+  --color-node-foreground: hsl(244.39, 10.25%, 89.55%);
+  --color-node-border: hsl(234.32, 12.5%, 37.68%);
+  --color-node-muted-foreground: hsl(240, 3%, 53%);
+  --color-node-highlight: hsla(243, 11%, 39%, 0.457);
+  --color-node-input: hsla(239, 12%, 27%, 1);
+}
+
+/* red (Standard set) */
+.light [data-node-color="standard-red"] {
+  --color-node: hsl(0, 70%, 95.91%);
+  --color-node-foreground: hsl(0, 74.5%, 16.8%);
+  --color-node-border: hsl(0, 71.5%, 69.6%);
+  --color-node-muted-foreground: hsl(0, 22%, 26%);
+  --color-node-highlight: hsla(0, 49%, 88%, 0.15);
+  --color-node-input: hsla(0, 72%, 56%, 0.6);
+}
+.dark [data-node-color="standard-red"] {
+  --color-node: hsl(0, 74.5%, 16.8%);
+  --color-node-foreground: hsl(0, 70.25%, 91.6%);
+  --color-node-border: hsl(0, 72.5%, 52%);
+  --color-node-muted-foreground: hsl(0, 21%, 63%);
+  --color-node-highlight: hsla(0, 71%, 42%, 0.457);
+  --color-node-input: hsla(0, 72%, 33%, 1);
+}
+
+/* orange (Standard set) */
+.light [data-node-color="standard-orange"] {
+  --color-node: hsl(29.99, 82%, 95.9%);
+  --color-node-foreground: hsl(17.34, 86.5%, 15.24%);
+  --color-node-border: hsl(24.94, 83.5%, 66.47%);
+  --color-node-muted-foreground: hsl(16, 26%, 23%);
+  --color-node-highlight: hsla(29, 58%, 87%, 0.15);
+  --color-node-input: hsla(22, 84%, 53%, 0.6);
+}
+.dark [data-node-color="standard-orange"] {
+  --color-node: hsl(17.34, 86.5%, 15.24%);
+  --color-node-foreground: hsl(29.32, 82.25%, 90.98%);
+  --color-node-border: hsl(20.56, 84.5%, 48.1%);
+  --color-node-muted-foreground: hsl(25, 25%, 60%);
+  --color-node-highlight: hsla(28, 83%, 41%, 0.457);
+  --color-node-input: hsla(24, 84%, 31%, 1);
+}
+
+/* yellow (Standard set) */
+.light [data-node-color="standard-yellow"] {
+  --color-node: hsl(44.98, 92.01%, 95.89%);
+  --color-node-foreground: hsl(28.4, 96.5%, 13.5%);
+  --color-node-border: hsl(38.84, 93.5%, 63.19%);
+  --color-node-muted-foreground: hsl(26, 29%, 20%);
+  --color-node-highlight: hsla(44, 65%, 86%, 0.15);
+  --color-node-input: hsla(35, 94%, 48%, 0.6);
+}
+.dark [data-node-color="standard-yellow"] {
+  --color-node: hsl(28.4, 96.5%, 13.5%);
+  --color-node-foreground: hsl(44.21, 92.25%, 90.36%);
+  --color-node-border: hsl(33, 94.5%, 43.84%);
+  --color-node-muted-foreground: hsl(39, 28%, 57%);
+  --color-node-highlight: hsla(43, 93%, 40%, 0.457);
+  --color-node-input: hsla(37, 94%, 29%, 1);
+}
+
+/* green (Standard set) */
+.light [data-node-color="standard-green"] {
+  --color-node: hsl(135.02, 65%, 95.89%);
+  --color-node-foreground: hsl(151.6, 69.5%, 13.5%);
+  --color-node-border: hsl(141.16, 66.5%, 63.19%);
+  --color-node-muted-foreground: hsl(154, 21%, 20%);
+  --color-node-highlight: hsla(136, 46%, 86%, 0.15);
+  --color-node-input: hsla(145, 67%, 48%, 0.6);
+}
+.dark [data-node-color="standard-green"] {
+  --color-node: hsl(151.6, 69.5%, 13.5%);
+  --color-node-foreground: hsl(135.79, 65.25%, 90.36%);
+  --color-node-border: hsl(147, 67.5%, 43.84%);
+  --color-node-muted-foreground: hsl(141, 20%, 57%);
+  --color-node-highlight: hsla(137, 66%, 40%, 0.457);
+  --color-node-input: hsla(143, 67%, 29%, 1);
+}
+
+/* teal (Standard set) */
+.light [data-node-color="standard-teal"] {
+  --color-node: hsl(170.01, 72%, 95.91%);
+  --color-node-foreground: hsl(174.55, 76.5%, 16.62%);
+  --color-node-border: hsl(171.92, 73.5%, 69.23%);
+  --color-node-muted-foreground: hsl(175, 23%, 25%);
+  --color-node-highlight: hsla(170, 51%, 88%, 0.15);
+  --color-node-input: hsla(173, 74%, 56%, 0.6);
+}
+.dark [data-node-color="standard-teal"] {
+  --color-node: hsl(174.55, 76.5%, 16.62%);
+  --color-node-foreground: hsl(170.27, 72.25%, 91.53%);
+  --color-node-border: hsl(173.47, 74.5%, 51.54%);
+  --color-node-muted-foreground: hsl(172, 22%, 62%);
+  --color-node-highlight: hsla(171, 73%, 42%, 0.457);
+  --color-node-input: hsla(172, 74%, 32%, 1);
+}
+
+/* blue (Standard set) */
+.light [data-node-color="standard-blue"] {
+  --color-node: hsl(219.99, 95%, 95.89%);
+  --color-node-foreground: hsl(204.4, 99.5%, 14.13%);
+  --color-node-border: hsl(214.05, 96.5%, 64.35%);
+  --color-node-muted-foreground: hsl(202, 30%, 21%);
+  --color-node-highlight: hsla(219, 67%, 86%, 0.15);
+  --color-node-input: hsla(210, 97%, 50%, 0.6);
+}
+.dark [data-node-color="standard-blue"] {
+  --color-node: hsl(204.4, 99.5%, 14.13%);
+  --color-node-foreground: hsl(219.22, 95.25%, 90.57%);
+  --color-node-border: hsl(208.59, 97.5%, 45.37%);
+  --color-node-muted-foreground: hsl(214, 29%, 58%);
+  --color-node-highlight: hsla(218, 96%, 40%, 0.457);
+  --color-node-input: hsla(213, 97%, 30%, 1);
+}
+
+/* purple (Standard set) */
+.light [data-node-color="standard-purple"] {
+  --color-node: hsl(275, 67.01%, 95.86%);
+  --color-node-foreground: hsl(279.19, 71.5%, 9.17%);
+  --color-node-border: hsl(276.2, 68.5%, 56.16%);
+  --color-node-muted-foreground: hsl(280, 21%, 12%);
+  --color-node-highlight: hsla(275, 47%, 84%, 0.15);
+  --color-node-input: hsla(277, 69%, 39%, 0.6);
+}
+.dark [data-node-color="standard-purple"] {
+  --color-node: hsl(279.19, 71.5%, 9.17%);
+  --color-node-foreground: hsl(275.14, 67.25%, 89.11%);
+  --color-node-border: hsl(277.67, 69.5%, 33.95%);
+  --color-node-muted-foreground: hsl(276, 21%, 51%);
+  --color-node-highlight: hsla(275, 68%, 38%, 0.457);
+  --color-node-input: hsla(277, 69%, 25%, 1);
+}
+
+/* pink (Standard set) */
+.light [data-node-color="standard-pink"] {
+  --color-node: hsl(330.01, 72%, 95.9%);
+  --color-node-foreground: hsl(342.66, 76.5%, 15.24%);
+  --color-node-border: hsl(335.06, 73.5%, 66.47%);
+  --color-node-muted-foreground: hsl(344, 23%, 23%);
+  --color-node-highlight: hsla(331, 51%, 87%, 0.15);
+  --color-node-input: hsla(338, 74%, 53%, 0.6);
+}
+.dark [data-node-color="standard-pink"] {
+  --color-node: hsl(342.66, 76.5%, 15.24%);
+  --color-node-foreground: hsl(330.68, 72.25%, 90.98%);
+  --color-node-border: hsl(339.44, 74.5%, 48.1%);
+  --color-node-muted-foreground: hsl(335, 22%, 60%);
+  --color-node-highlight: hsla(332, 73%, 41%, 0.457);
+  --color-node-input: hsla(336, 74%, 31%, 1);
+}
+
+/* brown (Standard set) */
+.light [data-node-color="standard-brown"] {
+  --color-node: hsl(29.99, 45.01%, 95.9%);
+  --color-node-foreground: hsl(17.34, 49.5%, 15.24%);
+  --color-node-border: hsl(24.94, 46.5%, 66.47%);
+  --color-node-muted-foreground: hsl(16, 15%, 23%);
+  --color-node-highlight: hsla(29, 32%, 87%, 0.15);
+  --color-node-input: hsla(22, 47%, 53%, 0.6);
+}
+.dark [data-node-color="standard-brown"] {
+  --color-node: hsl(17.34, 49.5%, 15.24%);
+  --color-node-foreground: hsl(29.32, 45.25%, 90.98%);
+  --color-node-border: hsl(20.56, 47.5%, 48.1%);
+  --color-node-muted-foreground: hsl(25, 14%, 60%);
+  --color-node-highlight: hsla(28, 46%, 41%, 0.457);
+  --color-node-input: hsla(24, 47%, 31%, 1);
+}
+
+/* olive (Standard set) */
+.light [data-node-color="standard-olive"] {
+  --color-node: hsl(90, 40.01%, 95.86%);
+  --color-node-foreground: hsl(90, 44.5%, 9.08%);
+  --color-node-border: hsl(90, 41.5%, 56.05%);
+  --color-node-muted-foreground: hsl(90, 13%, 12%);
+  --color-node-highlight: hsla(90, 28%, 84%, 0.15);
+  --color-node-input: hsla(90, 42%, 39%, 0.6);
+}
+.dark [data-node-color="standard-olive"] {
+  --color-node: hsl(90, 44.5%, 9.08%);
+  --color-node-foreground: hsl(90, 40.25%, 89.1%);
+  --color-node-border: hsl(90, 42.5%, 33.77%);
+  --color-node-muted-foreground: hsl(90, 12%, 50%);
+  --color-node-highlight: hsla(90, 41%, 38%, 0.457);
+  --color-node-input: hsla(90, 42%, 25%, 1);
+}
+
+/* peach (Standard set) */
+.light [data-node-color="standard-peach"] {
+  --color-node: hsl(19.99, 60%, 95.91%);
+  --color-node-foreground: hsl(11.13, 64.5%, 16.09%);
+  --color-node-border: hsl(16.34, 61.5%, 68.15%);
+  --color-node-muted-foreground: hsl(10, 19%, 24%);
+  --color-node-highlight: hsla(19, 42%, 88%, 0.15);
+  --color-node-input: hsla(14, 62%, 55%, 0.6);
+}
+.dark [data-node-color="standard-peach"] {
+  --color-node: hsl(11.13, 64.5%, 16.09%);
+  --color-node-foreground: hsl(19.49, 60.25%, 91.31%);
+  --color-node-border: hsl(13.3, 62.5%, 50.21%);
+  --color-node-muted-foreground: hsl(16, 18%, 61%);
+  --color-node-highlight: hsla(18, 61%, 41%, 0.457);
+  --color-node-input: hsla(16, 62%, 32%, 1);
+}
+
+/* mint (Standard set) */
+.light [data-node-color="standard-mint"] {
+  --color-node: hsl(120.01, 50.01%, 95.87%);
+  --color-node-foreground: hsl(136.88, 54.5%, 11.51%);
+  --color-node-border: hsl(125.64, 51.5%, 59.73%);
+  --color-node-muted-foreground: hsl(140, 16%, 17%);
+  --color-node-highlight: hsla(121, 35%, 85%, 0.15);
+  --color-node-input: hsla(130, 52%, 44%, 0.6);
+}
+.dark [data-node-color="standard-mint"] {
+  --color-node: hsl(136.88, 54.5%, 11.51%);
+  --color-node-foreground: hsl(120.69, 50.25%, 89.73%);
+  --color-node-border: hsl(131.63, 52.5%, 39.13%);
+  --color-node-muted-foreground: hsl(126, 15%, 54%);
+  --color-node-highlight: hsla(122, 51%, 39%, 0.457);
+  --color-node-input: hsla(127, 52%, 27%, 1);
+}
+
+/* sky (Standard set) */
+.light [data-node-color="standard-sky"] {
+  --color-node: hsl(199.99, 70%, 95.91%);
+  --color-node-foreground: hsl(191.13, 74.5%, 16.09%);
+  --color-node-border: hsl(196.34, 71.5%, 68.15%);
+  --color-node-muted-foreground: hsl(190, 22%, 24%);
+  --color-node-highlight: hsla(199, 49%, 88%, 0.15);
+  --color-node-input: hsla(194, 72%, 55%, 0.6);
+}
+.dark [data-node-color="standard-sky"] {
+  --color-node: hsl(191.13, 74.5%, 16.09%);
+  --color-node-foreground: hsl(199.49, 70.25%, 91.31%);
+  --color-node-border: hsl(193.3, 72.5%, 50.21%);
+  --color-node-muted-foreground: hsl(196, 21%, 61%);
+  --color-node-highlight: hsla(198, 71%, 41%, 0.457);
+  --color-node-input: hsla(196, 72%, 32%, 1);
+}
+
+/* ===== Solid Color Set ===== */
+/* Solid colors with dark text */
+
+/* white (Solid set) */
+.light [data-node-color="solid-white"] {
+  --color-node: hsl(265, 0.06%, 96.98%);
+  --color-node-foreground: hsl(265, 0.3%, 5%);
+  --color-node-border: hsl(265, 0.37%, 27.1%);
+  --color-node-muted-foreground: hsl(265, 0%, 7%);
+  --color-node-highlight: hsla(265, 0%, 14%, 0.15);
+  --color-node-input: hsla(265, 0%, 82%, 1);
+}
+.dark [data-node-color="solid-white"] {
+  --color-node: hsl(265, 0.23%, 86.79%);
+  --color-node-foreground: hsl(265, 0.31%, 6.95%);
+  --color-node-border: hsl(265, 0.31%, 6.95%);
+  --color-node-muted-foreground: hsl(265, 0%, 9%);
+  --color-node-highlight: hsla(265, 0%, 38%, 0.25);
+  --color-node-input: hsla(265, 1%, 35%, 1);
+}
+
+/* red (Solid set) */
+.light [data-node-color="solid-red"] {
+  --color-node: hsl(0, 58.65%, 74%);
+  --color-node-foreground: hsl(0, 25.5%, 5%);
+  --color-node-border: hsl(0, 58.14%, 43.4%);
+  --color-node-muted-foreground: hsl(0, 28%, 7%);
+  --color-node-highlight: hsla(0, 50%, 59%, 0.75);
+  --color-node-input: hsla(0, 56%, 41%, 1);
+}
+.dark [data-node-color="solid-red"] {
+  --color-node: hsl(0, 68.17%, 69.2%);
+  --color-node-foreground: hsl(0, 26.52%, 6.2%);
+  --color-node-border: hsl(0, 27.54%, 7.4%);
+  --color-node-muted-foreground: hsl(0, 30%, 9%);
+  --color-node-highlight: hsla(0, 32%, 6%, 0.25);
+  --color-node-input: hsla(0, 66%, 27%, 1);
+}
+
+/* orange (Solid set) */
+.light [data-node-color="solid-orange"] {
+  --color-node: hsl(30, 62.1%, 74%);
+  --color-node-foreground: hsl(30, 27%, 5%);
+  --color-node-border: hsl(30, 61.56%, 43.4%);
+  --color-node-muted-foreground: hsl(30, 29%, 7%);
+  --color-node-highlight: hsla(30, 53%, 59%, 0.75);
+  --color-node-input: hsla(30, 59%, 41%, 1);
+}
+.dark [data-node-color="solid-orange"] {
+  --color-node: hsl(30, 72.18%, 69.2%);
+  --color-node-foreground: hsl(30, 28.08%, 6.2%);
+  --color-node-border: hsl(30, 29.16%, 7.4%);
+  --color-node-muted-foreground: hsl(30, 31%, 9%);
+  --color-node-highlight: hsla(30, 33%, 6%, 0.25);
+  --color-node-input: hsla(30, 70%, 27%, 1);
+}
+
+/* yellow (Solid set) */
+.light [data-node-color="solid-yellow"] {
+  --color-node: hsl(45, 65.55%, 74%);
+  --color-node-foreground: hsl(45, 28.5%, 5%);
+  --color-node-border: hsl(45, 64.98%, 43.4%);
+  --color-node-muted-foreground: hsl(45, 31%, 7%);
+  --color-node-highlight: hsla(45, 56%, 59%, 0.75);
+  --color-node-input: hsla(45, 63%, 41%, 1);
+}
+.dark [data-node-color="solid-yellow"] {
+  --color-node: hsl(45, 76.19%, 69.2%);
+  --color-node-foreground: hsl(45, 29.64%, 6.2%);
+  --color-node-border: hsl(45, 30.78%, 7.4%);
+  --color-node-muted-foreground: hsl(45, 33%, 9%);
+  --color-node-highlight: hsla(45, 35%, 6%, 0.25);
+  --color-node-input: hsla(45, 74%, 27%, 1);
+}
+
+/* green (Solid set) */
+.light [data-node-color="solid-green"] {
+  --color-node: hsl(120, 69%, 74%);
+  --color-node-foreground: hsl(120, 30%, 5%);
+  --color-node-border: hsl(120, 68.4%, 43.4%);
+  --color-node-muted-foreground: hsl(120, 32%, 7%);
+  --color-node-highlight: hsla(120, 59%, 59%, 0.75);
+  --color-node-input: hsla(120, 66%, 41%, 1);
+}
+.dark [data-node-color="solid-green"] {
+  --color-node: hsl(120, 80.2%, 69.2%);
+  --color-node-foreground: hsl(120, 31.2%, 6.2%);
+  --color-node-border: hsl(120, 32.4%, 7.4%);
+  --color-node-muted-foreground: hsl(120, 35%, 9%);
+  --color-node-highlight: hsla(120, 37%, 6%, 0.25);
+  --color-node-input: hsla(120, 78%, 27%, 1);
+}
+
+/* cyan (Solid set) */
+.light [data-node-color="solid-cyan"] {
+  --color-node: hsl(180, 69%, 74%);
+  --color-node-foreground: hsl(180, 30%, 5%);
+  --color-node-border: hsl(180, 68.4%, 43.4%);
+  --color-node-muted-foreground: hsl(180, 32%, 7%);
+  --color-node-highlight: hsla(180, 59%, 59%, 0.75);
+  --color-node-input: hsla(180, 66%, 41%, 1);
+}
+.dark [data-node-color="solid-cyan"] {
+  --color-node: hsl(180, 80.2%, 69.2%);
+  --color-node-foreground: hsl(180, 31.2%, 6.2%);
+  --color-node-border: hsl(180, 32.4%, 7.4%);
+  --color-node-muted-foreground: hsl(180, 35%, 9%);
+  --color-node-highlight: hsla(180, 37%, 6%, 0.25);
+  --color-node-input: hsla(180, 78%, 27%, 1);
+}
+
+/* blue (Solid set) */
+.light [data-node-color="solid-blue"] {
+  --color-node: hsl(240, 69%, 74%);
+  --color-node-foreground: hsl(240, 30%, 5%);
+  --color-node-border: hsl(240, 68.4%, 43.4%);
+  --color-node-muted-foreground: hsl(240, 32%, 7%);
+  --color-node-highlight: hsla(240, 59%, 59%, 0.75);
+  --color-node-input: hsla(240, 66%, 41%, 1);
+}
+.dark [data-node-color="solid-blue"] {
+  --color-node: hsl(240, 80.2%, 69.2%);
+  --color-node-foreground: hsl(240, 31.2%, 6.2%);
+  --color-node-border: hsl(240, 32.4%, 7.4%);
+  --color-node-muted-foreground: hsl(240, 35%, 9%);
+  --color-node-highlight: hsla(240, 37%, 6%, 0.25);
+  --color-node-input: hsla(240, 78%, 27%, 1);
+}
+
+/* purple (Solid set) */
+.light [data-node-color="solid-purple"] {
+  --color-node: hsl(300, 69%, 74%);
+  --color-node-foreground: hsl(300, 30%, 5%);
+  --color-node-border: hsl(300, 68.4%, 43.4%);
+  --color-node-muted-foreground: hsl(300, 32%, 7%);
+  --color-node-highlight: hsla(300, 59%, 59%, 0.75);
+  --color-node-input: hsla(300, 66%, 41%, 1);
+}
+.dark [data-node-color="solid-purple"] {
+  --color-node: hsl(300, 80.2%, 69.2%);
+  --color-node-foreground: hsl(300, 31.2%, 6.2%);
+  --color-node-border: hsl(300, 32.4%, 7.4%);
+  --color-node-muted-foreground: hsl(300, 35%, 9%);
+  --color-node-highlight: hsla(300, 37%, 6%, 0.25);
+  --color-node-input: hsla(300, 78%, 27%, 1);
+}
