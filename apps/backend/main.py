@@ -15,7 +15,10 @@ from config.node_definitions import EXPERIMENTAL_NODES
 from config.settings import CORS_ORIGINS, logger
 from schemas import WorkflowRequest
 from workflow.executor import WorkflowExecutor
-from db import get_db, close_db
+from workflow.db_executor import DatabaseWorkflowExecutor
+from db import get_db, close_db, User
+from auth import get_current_active_user
+from routes import workflows_router, users_router, runs_router
 
 
 @asynccontextmanager
@@ -51,6 +54,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Include routers
+app.include_router(workflows_router)
+app.include_router(users_router)
+app.include_router(runs_router)
+
 
 @app.get("/")
 async def root():
@@ -60,9 +68,13 @@ async def root():
         "status": "running",
         "endpoints": {
             "health": "/healthz",
+            "users": "/users",
+            "workflows": "/workflows",
+            "runs": "/runs",
             "nodes": "/nodes",
             "models": "/models",
-            "execute": "/execute"
+            "execute": "/execute",
+            "docs": "/docs"
         },
     }
 
@@ -115,9 +127,15 @@ async def get_models():
 
 
 @app.post("/execute")
-async def execute_workflow(request: WorkflowRequest):
+async def execute_workflow(
+    request: WorkflowRequest,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+):
     """
-    Execute workflow and stream progress via Server-Sent Events
+    Execute workflow and stream progress via Server-Sent Events.
+
+    Execution is persisted to database for history/replay.
 
     Events streamed:
     - workflow_start: Execution begins
@@ -127,9 +145,42 @@ async def execute_workflow(request: WorkflowRequest):
     - node_complete: Node finished with output
     - node_error: Node encountered error
     - workflow_complete: All done
+
+    Args:
+        request: Workflow execution request with nodes and edges
+        current_user: Authenticated user
+        db: Database session
+
+    Returns:
+        SSE stream of execution events
     """
-    # Create executor and run workflow
-    executor = WorkflowExecutor(request.nodes, request.edges)
+    # Use workflow_id from request if provided, otherwise create temp workflow
+    from db import Workflow
+
+    workflow_id = request.workflow_id
+
+    if not workflow_id:
+        # Create temporary workflow for ad-hoc execution
+        temp_workflow = Workflow(
+            name="Ad-hoc Execution",
+            definition={"nodes": request.nodes, "edges": request.edges},
+            owner_id=current_user.id
+        )
+        db.add(temp_workflow)
+        await db.commit()
+        await db.refresh(temp_workflow)
+        workflow_id = temp_workflow.id
+        logger.info(f"📝 Created temporary workflow: {workflow_id}")
+
+    # Create database-aware executor
+    executor = DatabaseWorkflowExecutor(
+        workflow_id=workflow_id,
+        owner_id=current_user.id,
+        nodes=request.nodes,
+        edges=request.edges,
+        db=db
+    )
+
     return StreamingResponse(executor.execute(), media_type="text/event-stream")
 
 

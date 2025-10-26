@@ -11,6 +11,7 @@ Exports:
 
 from .database import Base, get_db, init_db, close_db, engine
 from .models import (
+    User,
     Workflow,
     WorkflowRun,
     NodeExecution,
@@ -26,6 +27,7 @@ __all__ = [
     "init_db",
     "close_db",
     "engine",
+    "User",
     "Workflow",
     "WorkflowRun",
     "NodeExecution",
