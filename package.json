@@ -2,7 +2,7 @@
   "name": "agent-platform",
   "version": "0.1.0",
   "private": true,
-  "author": "Scott Baggett <hello@scottbaggett.com>",
+  "author": "Scott Baggett",
   "description": "Advanced AI Workflow Platform",
   "scripts": {
     "dev": "turbo run dev",
